@@ -1,6 +1,6 @@
 # weather_bot
 
-Fetches an hourly temperature forecast from the [Open-Meteo](https://open-meteo.com/) API using the UK Met Office seamless model, and prints it as a pandas DataFrame.
+Looks up a place name via the [Open-Meteo](https://open-meteo.com/) geocoding and forecast APIs and returns a plain-language weather summary for a given date.
 
 ## Setup
 
@@ -27,14 +27,50 @@ The `source`/`Activate` step needs to be re-run in each new terminal session bef
 ## Usage
 
 ```bash
-python main.py
+python main.py --location "Manchester, UK" --date 2026-09-30
 ```
 
-By default it forecasts 7 days of hourly `temperature_2m` for the coordinates set in `main.py` (`latitude`/`longitude` in `params`). Edit those values to target a different location.
+`--date` defaults to today and accepts any `YYYY-MM-DD` date up to 16 days ahead (the limit of Open-Meteo's forecast APIs — past dates and dates further out aren't supported).
 
-Responses are cached locally (`.cache`) for an hour and retried automatically on failure.
+```
+$ python main.py --location Berlin
+Berlin, Germany on 2026-09-23: overcast, with a high of 19.5°C and a low of 8.1°C. 0% chance of precipitation (0.0 mm expected), winds up to 8.7 km/h.
+```
+
+The underlying function can also be imported and used directly. `date` is optional and defaults to today:
+
+```python
+from forecast import get_weather_summary
+
+get_weather_summary("Tokyo", "2026-09-30")
+get_weather_summary("Tokyo")
+```
+
+It raises `LocationNotFoundError` if the place name can't be resolved, and `DateOutOfRangeError` for dates outside the forecast window.
+
+Geocoding and forecast responses are cached locally (`.cache`) for an hour and retried automatically on failure.
+
+## Tests
+
+The test suite mocks all network calls, so it runs offline:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+## Project layout
+
+| File | Purpose |
+| --- | --- |
+| `forecast.py` | Geocoding, forecast lookup, and summary formatting |
+| `main.py` | Command-line entry point |
+| `tests/` | Unit tests |
+| `requirements.txt` | Runtime dependencies |
+| `requirements-dev.txt` | Runtime + test dependencies |
 
 ## Troubleshooting
 
 - `ModuleNotFoundError: No module named 'openmeteo_requests'` (or similar) — the virtual environment either hasn't been created, hasn't been activated, or the dependencies haven't been installed. Repeat the setup steps above.
 - If your editor's "Run" button still fails after activating the venv in your terminal, point its Python interpreter setting at `.venv/bin/python` (`.venv\Scripts\python.exe` on Windows) rather than the system Python.
+- `Could not find a location matching '...'` — the geocoding API matches on place name only, so very small towns or unusual spellings may not resolve. Try a nearby larger city, or a different spelling.

@@ -272,6 +272,14 @@ def test_resolve_activity_is_case_insensitive():
         ("sunbathing", "beach"),
         ("stars", "stargazing"),
         ("picnicking", "picnic"),
+        ("hike", "hiking"),
+        ("trekking", "hiking"),
+        ("camping", "hiking"),
+        ("walking", "sightseeing"),
+        ("tour", "sightseeing"),
+        ("bike", "cycling"),
+        ("bicycling", "cycling"),
+        ("garden", "gardening"),
     ],
 )
 def test_resolve_activity_accepts_synonyms(alias, expected):
@@ -407,3 +415,47 @@ def test_get_best_day_summary_accepts_synonym(monkeypatch):
 
     assert "🏃" in summary
     assert "running" in summary
+
+
+@pytest.mark.parametrize(
+    "activity,emoji",
+    [
+        ("hiking", "🥾"),
+        ("sightseeing", "🗺️"),
+        ("cycling", "🚴"),
+        ("gardening", "🌱"),
+    ],
+)
+def test_get_best_day_summary_covers_new_activities(
+    monkeypatch, activity, emoji
+):
+    today_start = int(
+        dt.datetime.combine(
+            dt.date.today(), dt.time(), tzinfo=dt.timezone.utc
+        ).timestamp()
+    )
+    daily = FakeDaily(
+        start_timestamp=today_start,
+        variable_values=[[0], [18.0], [18.0], [0.0], [5.0], [10.0]],
+    )
+
+    monkeypatch.setattr(
+        forecast,
+        "geocode",
+        lambda location: {
+            "name": "Berlin",
+            "country": "Germany",
+            "latitude": 52.52,
+            "longitude": 13.4,
+        },
+    )
+    monkeypatch.setattr(
+        forecast._openmeteo,
+        "weather_api",
+        lambda url, params: [FakeWeatherResponse(daily)],
+    )
+
+    summary = forecast.get_best_day_summary("Berlin", activity, days=1)
+
+    assert emoji in summary
+    assert activity in summary

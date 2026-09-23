@@ -59,7 +59,7 @@ $ python main.py --location Barcelona --activity beach
 🏖️ Best day for beach in Barcelona, Spain over the next 7 days: Friday 2026-09-25 (mainly clear, suitability 100/100).
 ```
 
-`--activity` accepts `picnic`, `running`, `beach`, or `stargazing`, plus common synonyms (`run`, `jog`, `swim`, `sunbathing`, `stars`, `astronomy`, …), case-insensitively — see `ACTIVITY_ALIASES` in `forecast.py` for the full list. Each day in the window is scored out of 100 on temperature, precipitation chance, wind, and (for stargazing) cloud cover, weighted by what that activity actually needs — see `ACTIVITIES` in `forecast.py` to tweak the profiles or add your own. `--days` defaults to 7 and is capped at 16.
+`--activity` accepts `picnic`, `running`, `beach`, `stargazing`, `hiking`, `sightseeing`, `cycling`, or `gardening`, plus common synonyms (`run`, `jog`, `swim`, `sunbathing`, `stars`, `astronomy`, `hike`, `trek`, `camping`, `walking`, `tour`, `bike`, `garden`, …), case-insensitively — see `ACTIVITY_ALIASES` in `forecast.py` for the full list. Each day in the window is scored out of 100 on temperature, precipitation chance, wind, and (for stargazing) cloud cover, weighted by what that activity actually needs — see `ACTIVITIES` in `forecast.py` to tweak the profiles or add your own. `--days` defaults to 7 and is capped at 16.
 
 This is also available as a function:
 

@@ -71,6 +71,26 @@ ACTIVITIES = {
         "ideal_temp": (5, 25),
         "weights": {"temp": 0.1, "precip": 0.3, "wind": 0.1, "cloud": 0.5},
     },
+    "hiking": {
+        "emoji": "🥾",
+        "ideal_temp": (10, 22),
+        "weights": {"temp": 0.3, "precip": 0.4, "wind": 0.3, "cloud": 0.0},
+    },
+    "sightseeing": {
+        "emoji": "🗺️",
+        "ideal_temp": (12, 24),
+        "weights": {"temp": 0.3, "precip": 0.5, "wind": 0.2, "cloud": 0.0},
+    },
+    "cycling": {
+        "emoji": "🚴",
+        "ideal_temp": (12, 24),
+        "weights": {"temp": 0.3, "precip": 0.3, "wind": 0.4, "cloud": 0.0},
+    },
+    "gardening": {
+        "emoji": "🌱",
+        "ideal_temp": (15, 25),
+        "weights": {"temp": 0.3, "precip": 0.5, "wind": 0.2, "cloud": 0.0},
+    },
 }
 
 # Alternative spellings/phrasings that map onto an ACTIVITIES key.
@@ -86,6 +106,18 @@ ACTIVITY_ALIASES = {
     "stars": "stargazing",
     "stargaze": "stargazing",
     "astronomy": "stargazing",
+    "hike": "hiking",
+    "trek": "hiking",
+    "trekking": "hiking",
+    "camping": "hiking",
+    "sightsee": "sightseeing",
+    "tour": "sightseeing",
+    "touring": "sightseeing",
+    "walking": "sightseeing",
+    "bike": "cycling",
+    "biking": "cycling",
+    "bicycling": "cycling",
+    "garden": "gardening",
 }
 
 _cache_session = requests_cache.CachedSession(".cache", expire_after=3600)

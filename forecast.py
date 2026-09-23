@@ -317,7 +317,7 @@ def recommend_best_day(location, activity, days=7):
     Returns:
         A dict with "place" (as returned by geocode()), "activity" (the
         canonical activity name) and "ranked_days" — a list of {"date",
-        "score", "condition"} dicts, best day first.
+        "score", "condition", "temp_max"} dicts, best day first.
 
     Raises:
         ValueError: if `activity` isn't recognised.
@@ -378,6 +378,7 @@ def recommend_best_day(location, activity, days=7):
             "date": date,
             "score": round(overall, 1),
             "condition": condition,
+            "temp_max": temp_max[i],
         })
 
     ranked_days.sort(key=lambda day: day["score"], reverse=True)
@@ -399,5 +400,6 @@ def get_best_day_summary(location, activity, days=7):
     return (
         f"{emoji} Best day for {activity} in {where} over the next {days} "
         f"days: {best['date'].strftime('%A')} {best['date'].isoformat()} "
-        f"({best['condition']}, suitability {best['score']:.0f}/100)."
+        f"({best['condition']}, high of {best['temp_max']:.1f}°C, "
+        f"suitability {best['score']:.0f}/100)."
     )

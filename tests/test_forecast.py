@@ -345,6 +345,7 @@ def test_recommend_best_day_ranks_best_first(monkeypatch):
         today + dt.timedelta(days=2),
         today + dt.timedelta(days=1),
     ]
+    assert [day["temp_max"] for day in ranked] == [20, 30, 5]
 
 
 def test_get_best_day_summary_formats_output(monkeypatch):
@@ -379,6 +380,7 @@ def test_get_best_day_summary_formats_output(monkeypatch):
     assert "🧺" in summary
     assert "picnic" in summary
     assert "Manchester, United Kingdom" in summary
+    assert "high of 20.0°C" in summary
     assert "100/100" in summary
 
 

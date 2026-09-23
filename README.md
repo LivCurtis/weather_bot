@@ -1,6 +1,6 @@
 # weather_bot
 
-Looks up a place name via the [Open-Meteo](https://open-meteo.com/) geocoding and forecast APIs and returns a plain-language weather summary for a given date.
+Looks up a place name via the [Open-Meteo](https://open-meteo.com/) geocoding and forecast APIs, and returns either a plain-language weather summary for a given date, or a recommendation for the best day this week to do something outdoors.
 
 ## Setup
 
@@ -47,6 +47,28 @@ get_weather_summary("Tokyo")
 ```
 
 It raises `LocationNotFoundError` if the place name can't be resolved, and `DateOutOfRangeError` for dates outside the forecast window.
+
+### Best day for an activity
+
+```bash
+python main.py --location "Manchester, UK" --activity picnic --days 7
+```
+
+```
+$ python main.py --location Barcelona --activity beach
+🏖️ Best day for beach in Barcelona, Spain over the next 7 days: Friday 2026-09-25 (mainly clear, high of 29.2°C, suitability 100/100).
+```
+
+`--activity` accepts `picnic`, `running`, `beach`, `stargazing`, `hiking`, `sightseeing`, `cycling`, or `gardening`, plus common synonyms (`run`, `jog`, `swim`, `sunbathing`, `stars`, `astronomy`, `hike`, `trek`, `camping`, `walking`, `tour`, `bike`, `garden`, …), case-insensitively — see `ACTIVITY_ALIASES` in `forecast.py` for the full list. Each day in the window is scored out of 100 on temperature, precipitation chance, wind, and (for stargazing) cloud cover, weighted by what that activity actually needs — see `ACTIVITIES` in `forecast.py` to tweak the profiles or add your own. `--days` defaults to 7 and is capped at 16.
+
+This is also available as a function:
+
+```python
+from forecast import get_best_day_summary, recommend_best_day
+
+get_best_day_summary("Tokyo", "running", days=10)
+recommend_best_day("Tokyo", "running", days=10)  # full ranked breakdown
+```
 
 Geocoding and forecast responses are cached locally (`.cache`) for an hour and retried automatically on failure.
 

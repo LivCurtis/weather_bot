@@ -1,47 +1,37 @@
-import openmeteo_requests
-import pandas as pd
-import requests_cache
-from retry_requests import retry
+"""CLI: print a weather forecast summary for a place and date."""
 
-# Setup the Open-Meteo API client with cache and retry on error
-cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
-retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
-openmeteo = openmeteo_requests.Client(session = retry_session)
+import argparse
+import datetime as dt
 
-# Make sure all required weather variables are listed here
-# The order of variables in hourly or daily is important to assign them correctly below
-url = "https://api.open-meteo.com/v1/forecast"
-params = {
-	"latitude": 53.4809,
-	"longitude": -2.2374,
-	"hourly": "temperature_2m",
-	"models": "ukmo_seamless",
-	"timezone": "auto",
-	"forecast_days": 7,
-}
-responses = openmeteo.weather_api(url, params = params)
+from forecast import (
+    DateOutOfRangeError,
+    LocationNotFoundError,
+    get_weather_summary,
+)
 
-# Process first location. Add a for-loop for multiple locations or weather models
-response = responses[0]
-print(f"Coordinates: {response.Latitude()}°N {response.Longitude()}°E")
-print(f"Elevation: {response.Elevation()} m asl")
-print(f"Timezone: {response.Timezone().decode()}{response.TimezoneAbbreviation().decode()}")
-print(f"Timezone difference to GMT+0: {response.UtcOffsetSeconds()}s")
 
-# Process hourly data. The order of variables needs to be the same as requested.
-hourly = response.Hourly()
-hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--location",
+        required=True,
+        help='Place name, e.g. "Manchester, UK"',
+    )
+    parser.add_argument(
+        "--date",
+        default=dt.date.today().isoformat(),
+        help="Date to forecast, as YYYY-MM-DD (default: today)",
+    )
+    return parser.parse_args()
 
-hourly_data = {
-	"date": pd.date_range(
-		start = pd.to_datetime(hourly.Time(), unit = "s", utc = True),
-		end =  pd.to_datetime(hourly.TimeEnd(), unit = "s", utc = True),
-		freq = pd.Timedelta(seconds = hourly.Interval()),
-		inclusive = "left"
-	).tz_convert(response.Timezone().decode())
-}
 
-hourly_data["temperature_2m"] = hourly_temperature_2m
+def main():
+    args = parse_args()
+    try:
+        print(get_weather_summary(args.location, args.date))
+    except (LocationNotFoundError, DateOutOfRangeError, ValueError) as error:
+        raise SystemExit(f"Error: {error}")
 
-hourly_dataframe = pd.DataFrame(data = hourly_data)
-print("\nHourly data\n", hourly_dataframe)
+
+if __name__ == "__main__":
+    main()

@@ -50,13 +50,24 @@ It raises `LocationNotFoundError` if the place name can't be resolved, and `Date
 
 Geocoding and forecast responses are cached locally (`.cache`) for an hour and retried automatically on failure.
 
+## Tests
+
+The test suite mocks all network calls, so it runs offline:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
 ## Project layout
 
 | File | Purpose |
 | --- | --- |
 | `forecast.py` | Geocoding, forecast lookup, and summary formatting |
 | `main.py` | Command-line entry point |
-| `requirements.txt` | Python dependencies |
+| `tests/` | Unit tests |
+| `requirements.txt` | Runtime dependencies |
+| `requirements-dev.txt` | Runtime + test dependencies |
 
 ## Troubleshooting
 

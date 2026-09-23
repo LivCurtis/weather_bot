@@ -253,6 +253,36 @@ def test_wind_score():
     assert forecast._wind_score(30) == 60.0  # 10 km/h over -> -40
 
 
+# ---- activity name resolution -------------------------------------------
+
+def test_resolve_activity_accepts_canonical_name():
+    assert forecast._resolve_activity("running") == "running"
+
+
+def test_resolve_activity_is_case_insensitive():
+    assert forecast._resolve_activity("RUNNING") == "running"
+
+
+@pytest.mark.parametrize(
+    "alias,expected",
+    [
+        ("run", "running"),
+        ("jog", "running"),
+        ("swim", "beach"),
+        ("sunbathing", "beach"),
+        ("stars", "stargazing"),
+        ("picnicking", "picnic"),
+    ],
+)
+def test_resolve_activity_accepts_synonyms(alias, expected):
+    assert forecast._resolve_activity(alias) == expected
+
+
+def test_resolve_activity_rejects_unknown_name():
+    with pytest.raises(ValueError):
+        forecast._resolve_activity("skiing")
+
+
 # ---- recommend_best_day / get_best_day_summary -------------------------
 
 def test_recommend_best_day_rejects_unknown_activity():
@@ -342,3 +372,38 @@ def test_get_best_day_summary_formats_output(monkeypatch):
     assert "picnic" in summary
     assert "Manchester, United Kingdom" in summary
     assert "100/100" in summary
+
+
+def test_get_best_day_summary_accepts_synonym(monkeypatch):
+    today_start = int(
+        dt.datetime.combine(
+            dt.date.today(), dt.time(), tzinfo=dt.timezone.utc
+        ).timestamp()
+    )
+    daily = FakeDaily(
+        start_timestamp=today_start,
+        variable_values=[[0], [12.0], [12.0], [0.0], [5.0], [10.0]],
+    )
+
+    monkeypatch.setattr(
+        forecast,
+        "geocode",
+        lambda location: {
+            "name": "Berlin",
+            "country": "Germany",
+            "latitude": 52.52,
+            "longitude": 13.4,
+        },
+    )
+    monkeypatch.setattr(
+        forecast._openmeteo,
+        "weather_api",
+        lambda url, params: [FakeWeatherResponse(daily)],
+    )
+
+    # "run" is a synonym for "running" — the output should use the
+    # canonical name and its emoji, not the raw input.
+    summary = forecast.get_best_day_summary("Berlin", "run", days=1)
+
+    assert "🏃" in summary
+    assert "running" in summary

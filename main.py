@@ -27,9 +27,9 @@ def parse_args():
     )
     parser.add_argument(
         "--activity",
-        choices=sorted(ACTIVITIES),
         help="If set, recommend the best day for this activity instead of "
-        "forecasting a single date.",
+        f"forecasting a single date. One of: {', '.join(sorted(ACTIVITIES))} "
+        "(synonyms like 'run' or 'swim' also work).",
     )
     parser.add_argument(
         "--days",

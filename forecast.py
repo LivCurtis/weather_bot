@@ -73,6 +73,21 @@ ACTIVITIES = {
     },
 }
 
+# Alternative spellings/phrasings that map onto an ACTIVITIES key.
+ACTIVITY_ALIASES = {
+    "picnicking": "picnic",
+    "run": "running",
+    "jog": "running",
+    "jogging": "running",
+    "beaching": "beach",
+    "sunbathing": "beach",
+    "swim": "beach",
+    "swimming": "beach",
+    "stars": "stargazing",
+    "stargaze": "stargazing",
+    "astronomy": "stargazing",
+}
+
 _cache_session = requests_cache.CachedSession(".cache", expire_after=3600)
 _retry_session = retry(_cache_session, retries=5, backoff_factor=0.2)
 _openmeteo = openmeteo_requests.Client(session=_retry_session)
@@ -238,29 +253,45 @@ def _wind_score(wind_speed_kmh, comfortable_max=20.0):
     return max(0.0, 100 - (wind_speed_kmh - comfortable_max) * 4)
 
 
+def _resolve_activity(activity):
+    """Normalize `activity` to a canonical ACTIVITIES key.
+
+    Accepts a canonical name or a recognised synonym (see
+    ACTIVITY_ALIASES), case-insensitively.
+    """
+    normalized = activity.strip().lower()
+    if normalized in ACTIVITIES:
+        return normalized
+    if normalized in ACTIVITY_ALIASES:
+        return ACTIVITY_ALIASES[normalized]
+
+    valid = ", ".join(sorted(ACTIVITIES))
+    raise ValueError(
+        f"Unknown activity '{activity}'. Choose from: {valid} "
+        "(synonyms like 'run' or 'swim' also work)."
+    )
+
+
 def recommend_best_day(location, activity, days=7):
     """Rank the next `days` forecastable days by suitability for `activity`.
 
     Args:
         location: a place name, e.g. "Manchester, UK".
         activity: one of the keys in ACTIVITIES (e.g. "picnic", "running",
-            "beach", "stargazing").
+            "beach", "stargazing"), or a recognised synonym (e.g. "run",
+            "swim") — see ACTIVITY_ALIASES.
         days: how many days ahead to consider, capped at MAX_FORECAST_DAYS.
 
     Returns:
-        A dict with "place" (as returned by geocode()) and "ranked_days" —
-        a list of {"date", "score", "condition"} dicts, best day first.
+        A dict with "place" (as returned by geocode()), "activity" (the
+        canonical activity name) and "ranked_days" — a list of {"date",
+        "score", "condition"} dicts, best day first.
 
     Raises:
         ValueError: if `activity` isn't recognised.
         LocationNotFoundError: if `location` can't be geocoded.
     """
-    if activity not in ACTIVITIES:
-        valid = ", ".join(sorted(ACTIVITIES))
-        raise ValueError(
-            f"Unknown activity '{activity}'. Choose from: {valid}"
-        )
-
+    activity = _resolve_activity(activity)
     days = max(1, min(days, MAX_FORECAST_DAYS))
     place = geocode(location)
 
@@ -318,7 +349,7 @@ def recommend_best_day(location, activity, days=7):
         })
 
     ranked_days.sort(key=lambda day: day["score"], reverse=True)
-    return {"place": place, "ranked_days": ranked_days}
+    return {"place": place, "activity": activity, "ranked_days": ranked_days}
 
 
 def get_best_day_summary(location, activity, days=7):
@@ -328,6 +359,7 @@ def get_best_day_summary(location, activity, days=7):
     """
     result = recommend_best_day(location, activity, days=days)
     place = result["place"]
+    activity = result["activity"]
     best = result["ranked_days"][0]
     where = f"{place['name']}, {place['country']}".strip(", ")
     emoji = ACTIVITIES[activity]["emoji"]

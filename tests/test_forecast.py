@@ -229,3 +229,116 @@ def test_get_weather_summary_unknown_weather_code(monkeypatch):
     summary = forecast.get_weather_summary("Nowhere")
 
     assert "unknown conditions" in summary
+
+
+# ---- scoring helpers ----------------------------------------------------
+
+def test_temp_score_within_range_is_perfect():
+    assert forecast._temp_score(20, (15, 25)) == 100.0
+
+
+def test_temp_score_decays_outside_range():
+    assert forecast._temp_score(5, (15, 25)) == 20.0  # 10°C below -> -80
+    assert forecast._temp_score(30, (15, 25)) == 60.0  # 5°C above -> -40
+
+
+def test_inverse_score():
+    assert forecast._inverse_score(0) == 100.0
+    assert forecast._inverse_score(80) == 20.0
+    assert forecast._inverse_score(150) == 0.0  # clamped, not negative
+
+
+def test_wind_score():
+    assert forecast._wind_score(5) == 100.0
+    assert forecast._wind_score(30) == 60.0  # 10 km/h over -> -40
+
+
+# ---- recommend_best_day / get_best_day_summary -------------------------
+
+def test_recommend_best_day_rejects_unknown_activity():
+    with pytest.raises(ValueError):
+        forecast.recommend_best_day("Anywhere", "skiing")
+
+
+def test_recommend_best_day_ranks_best_first(monkeypatch):
+    today_start = int(
+        dt.datetime.combine(
+            dt.date.today(), dt.time(), tzinfo=dt.timezone.utc
+        ).timestamp()
+    )
+    # Three days engineered to give picnic scores of 100, 64, 28 (in that
+    # column order) — see _temp_score/_inverse_score/_wind_score above.
+    daily = FakeDaily(
+        start_timestamp=today_start,
+        variable_values=[
+            [1, 2, 3],          # weather_code
+            [20, 5, 30],        # temperature_2m_max
+            [20, 5, 30],        # temperature_2m_min (== max, for a clean avg)
+            [0, 80, 50],        # precipitation_probability_max
+            [5, 30, 15],        # wind_speed_10m_max
+            [50, 50, 50],       # cloud_cover_mean (irrelevant to picnic)
+        ],
+    )
+
+    monkeypatch.setattr(
+        forecast,
+        "geocode",
+        lambda location: {
+            "name": "Manchester",
+            "country": "United Kingdom",
+            "latitude": 53.48,
+            "longitude": -2.24,
+        },
+    )
+    monkeypatch.setattr(
+        forecast._openmeteo,
+        "weather_api",
+        lambda url, params: [FakeWeatherResponse(daily)],
+    )
+
+    result = forecast.recommend_best_day("Manchester, UK", "picnic", days=3)
+    ranked = result["ranked_days"]
+    today = dt.date.today()
+
+    assert [day["score"] for day in ranked] == [100.0, 64.0, 28.0]
+    # Best day is today, second-best is today+2, worst is today+1.
+    assert [day["date"] for day in ranked] == [
+        today,
+        today + dt.timedelta(days=2),
+        today + dt.timedelta(days=1),
+    ]
+
+
+def test_get_best_day_summary_formats_output(monkeypatch):
+    today_start = int(
+        dt.datetime.combine(
+            dt.date.today(), dt.time(), tzinfo=dt.timezone.utc
+        ).timestamp()
+    )
+    daily = FakeDaily(
+        start_timestamp=today_start,
+        variable_values=[[0], [20.0], [20.0], [0.0], [5.0], [10.0]],
+    )
+
+    monkeypatch.setattr(
+        forecast,
+        "geocode",
+        lambda location: {
+            "name": "Manchester",
+            "country": "United Kingdom",
+            "latitude": 53.48,
+            "longitude": -2.24,
+        },
+    )
+    monkeypatch.setattr(
+        forecast._openmeteo,
+        "weather_api",
+        lambda url, params: [FakeWeatherResponse(daily)],
+    )
+
+    summary = forecast.get_best_day_summary("Manchester, UK", "picnic", days=1)
+
+    assert "🧺" in summary
+    assert "picnic" in summary
+    assert "Manchester, United Kingdom" in summary
+    assert "100/100" in summary

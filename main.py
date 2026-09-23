@@ -25,7 +25,7 @@ responses = openmeteo.weather_api(url, params = params)
 response = responses[0]
 print(f"Coordinates: {response.Latitude()}°N {response.Longitude()}°E")
 print(f"Elevation: {response.Elevation()} m asl")
-print(f"Timezone: {response.Timezone()}{response.TimezoneAbbreviation()}")
+print(f"Timezone: {response.Timezone().decode()}{response.TimezoneAbbreviation().decode()}")
 print(f"Timezone difference to GMT+0: {response.UtcOffsetSeconds()}s")
 
 # Process hourly data. The order of variables needs to be the same as requested.
